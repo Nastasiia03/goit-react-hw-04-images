@@ -1,4 +1,4 @@
-import { Component } from 'react'
+import { useState, useEffect } from 'react'
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Layout } from './Layout';
 import { Searchbar } from "./Searchbar/Searchbar";
@@ -10,95 +10,85 @@ import { Modal } from './Modal/Modal';
 import { GlobalStyle } from './Globalstyle';
 
 
-export class App extends Component {
-  state = {
-    images: [],
-    page: 1,
-    textSearch: '',
-    loading: false,
-    error: '',
-    showModal: false,
-    largeImage: ''
-  }
+export const App = () => {
+  const [images, setImages] = useState([]);
+  const [page, setPage] = useState(1);
+  const [textSearch, setTextSearch] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showModal, setShowModal] = useState(false);
+  const [largeImage, setLargeImage] = useState("");
   
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.textSearch !== this.state.textSearch) {
-      this.getData();
-    }
-  }
-
-getData=()=>{
-  const {page, textSearch} = this.state;
-  this.setState({loading: true});
+  useEffect(() => {
+    if (textSearch !== "") {
+    setLoading(true);
 getImages(textSearch.trim(), page)
 .then((response) => response.json())
 .then((images) => {
  if (images.hits.length < 1) {
   toast.error("The gallery is empty 😒")
   return Promise.reject(new Error('Not found'))
-}
-  this.setState(prevState => ({ images: [...prevState.images, ...images.hits], page: prevState.page + 1 }))
+  }
+  setImages(prevImages => [...prevImages, ...images.hits]);
    if (page !== 1) {
-        this.scrollLoadMore();
+        scrollLoadMore();
       } 
 })
 .catch((error) => {
-  console.log('error :>> ', error)
-  this.setState({error})
+  setError(error)
 })
 .finally(() => {
-this.setState({ loading: false}) 
+setLoading(false) 
  })
-}
+    };
+  }, [page, textSearch]);
 
-handleSubmit = (textSearch) => {
-		this.setState({ 
-      images: [],
-      page: 1,
-      textSearch: textSearch,
-      error: ''
-     })
+  const handleSubmit = (textSearch) => {
+    setImages([]);
+    setPage(1);
+    setTextSearch(textSearch);
+    setError("");
   }
   
-  openModal = (fullImage) => {
-    this.setState({
-      largeImage: fullImage,
-      showModal: true
-})
+  const openModal = (fullImage) => {
+    setLargeImage(fullImage);
+    setShowModal(true);
+}
+
+  const closeModal = () => {
+    setShowModal(!showModal)
   }
 
-  closeModal = () => {
-    this.setState(prevState => ({
-      showModal: !prevState.showModal,
-      
-}))
+  const loadMore = () => {
+    setPage(prevPage => prevPage + 1)
   }
 
-  scrollLoadMore = () => {
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      behavior: 'smooth',
-    });
+ const scrollLoadMore = () => {
+   window.scrollTo({
+     top: document.documentElement.scrollHeight,
+     behavior: 'smooth',
+   });
   }
 
-  render() {
-    const {images, loading, showModal, largeImage} = this.state;
-    const showLoadMore = images.length > 0 && images.length >= 12;
+  const showLoadMore = images.length > 0 && images.length >= 12;
+  
     return (
       <>
         <GlobalStyle/>
-        <Searchbar onSearch={this.handleSubmit} />
+        <Searchbar onSearch={handleSubmit} />
         <Toaster position="top-right"/>
         <Layout>
-          <ImageGallery images={images} onImageClick={this.openModal} />
-        {showLoadMore &&
-            <Button onLoad={this.getData} />} 
+          <ImageGallery images={images} onImageClick={openModal} />
+          {error && console.log('error :>> ', error)} 
+          {showLoadMore &&
+            <Button onLoad={loadMore} />} 
         </Layout>
-        {showModal && <Modal onClose={this.closeModal}>
+        {showModal && <Modal onClose={closeModal}>
         <img src={largeImage} alt=""/> 
         </Modal>}
-        {loading && <Loader/>}
+        {loading && <Loader />}
+
       </>
     );
   };
-};
+
